@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brastex Dashboard Facilities Resumo</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#001d3d">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js Datalabels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --brastex-blue: #001d3d;
+            --brastex-blue-dark: #001226;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--brastex-blue);
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .filter-btn.active {
+            background-color: var(--brastex-blue);
+            color: white;
+            border-color: var(--brastex-blue);
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            transition: opacity 0.3s ease;
+        }
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            max-width: 90%;
+            width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .hidden {
+            display: none;
+        }
+        .brastex-btn {
+            background-color: var(--brastex-blue);
+            border: 1px solid #fff;
+        }
+        .brastex-btn:hover {
+            background-color: #fff;
+            color: var(--brastex-blue);
+        }
+        .file-input-brastex::file-selector-button {
+            background-color: #eef2ff;
+            color: var(--brastex-blue);
+        }
+        .file-input-brastex::file-selector-button:hover {
+             background-color: #e0e7ff;
+        }
+        .not-paid {
+            color: #9ca3af; /* gray-400 */
+        }
+
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 1cm;
+            }
+
+            body {
+                background-color: #fff !important;
+            }
+
+            body * {
+                visibility: hidden;
+            }
+
+            #report-modal, #report-modal * {
+                 visibility: visible;
+            }
+            
+            #report-modal {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background: white;
+                display: block !important;
+            }
+
+            #report-modal .modal-content {
+                width: 100%;
+                height: 100%;
+                max-width: 100%;
+                max-height: 100%;
+                box-shadow: none;
+                border: 1px solid #ccc;
+                padding: 1cm;
+                font-size: 10pt;
+            }
+
+            #report-content {
+                page-break-inside: avoid;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            #report-content > div {
+                margin-bottom: 0.5cm;
+            }
+
+            #report-image {
+                max-height: 8cm;
+                width: auto;
+                object-fit: contain;
+            }
+
+            .print-hidden {
+                display: none;
+            }
+        }
+
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+            <div class="flex items-center">
+                <img src="https://www.elgalvao.com.br/imagens/bras.png" alt="Logo Brastex" class="h-20 mr-4">
+                <div class="text-left">
+                    <h1 class="text-3xl md:text-4xl font-bold text-white">Brastex Dashboard Facilities</h1>
+                    <p class="text-gray-300 mt-1">Resumo das pendências - Atualizado em <span id="updateDate"></span></p>
+                </div>
+            </div>
+            <button id="add-new-btn" class="mt-4 md:mt-0 brastex-btn text-white font-bold py-2 px-4 rounded-lg transition duration-300 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                Nova Pendência
+            </button>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="card p-6 flex items-center"><div class="p-3 rounded-full bg-blue-100 mr-4"><svg class="w-6 h-6" style="color: var(--brastex-blue)" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg></div><div><p class="text-gray-500 text-sm">Total de Pendências</p><p id="total-pendencias" class="text-2xl font-bold text-gray-800">0</p></div></div>
+            <div class="card p-6 flex items-center"><div class="p-3 rounded-full bg-green-100 mr-4"><svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div><div><p class="text-gray-500 text-sm">Concluídos</p><p id="total-concluidos" class="text-2xl font-bold text-green-600">0</p></div></div>
+            <div class="card p-6 flex items-center"><div class="p-3 rounded-full bg-yellow-100 mr-4"><svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div><div><p class="text-gray-500 text-sm">Em Andamento</p><p id="total-andamento" class="text-2xl font-bold text-yellow-600">0</p></div></div>
+            <div class="card p-6 flex items-center"><div class="p-3 rounded-full bg-red-100 mr-4"><svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div><div><p class="text-gray-500 text-sm">Atraso / Não Iniciado</p><p id="total-atraso" class="text-2xl font-bold text-red-600">0</p></div></div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
+            <div class="lg:col-span-2 card p-6"><h3 class="text-lg font-semibold text-gray-700 mb-4">Pendências por Status</h3><canvas id="statusPieChart"></canvas></div>
+            <div class="lg:col-span-3 card p-6"><h3 class="text-lg font-semibold text-gray-700 mb-4">Pendências por Área Técnica</h3><canvas id="areaBarChart"></canvas></div>
+        </div>
+
+        <!-- Table and Filters -->
+        <div class="card p-6">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4 md:mb-0">Tabela Detalhada de Pendências</h3>
+                <div id="filters" class="flex space-x-2 flex-wrap justify-center">
+                    <button data-status="Todos" class="filter-btn active px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Todos</button>
+                    <button data-status="Concluído" class="filter-btn px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Concluídos</button>
+                    <button data-status="Em Andamento" class="filter-btn px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Em Andamento</button>
+                    <button data-status="Atrasado / Não Iniciado" class="filter-btn px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Atrasados</button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Contrato</th>
+                            <th scope="col" class="px-6 py-3">Descrição da Pendência</th>
+                            <th scope="col" class="px-6 py-3">Data Programada</th>
+                            <th scope="col" class="px-6 py-3">Pago</th>
+                            <th scope="col" class="px-6 py-3">Progresso</th>
+                            <th scope="col" class="px-6 py-3">Status</th>
+                            <th scope="col" class="px-6 py-3">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pendencias-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="form-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 id="modal-title" class="text-2xl font-bold mb-6">Nova Pendência</h2>
+            <form id="pendencia-form">
+                <input type="hidden" id="pendencia-id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="mb-4"><label for="numeroContrato" class="block text-sm font-medium text-gray-700">Nº Contrato</label><input type="text" id="numeroContrato" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></div>
+                    <div class="mb-4"><label for="areaTecnica" class="block text-sm font-medium text-gray-700">Área Técnica</label><input type="text" id="areaTecnica" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></div>
+                </div>
+                <div class="mb-4"><label for="descricao" class="block text-sm font-medium text-gray-700">Descrição</label><input type="text" id="descricao" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required></div>
+                <div class="mb-4"><label for="pendencia" class="block text-sm font-medium text-gray-700">Pendência</label><textarea id="pendencia" rows="2" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="mb-4"><label for="dataProgramada" class="block text-sm font-medium text-gray-700">Data Programada</label><input type="text" id="dataProgramada" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></div>
+                    <div class="mb-4"><label for="diasAtraso" class="block text-sm font-medium text-gray-700">Dias de Atraso</label><input type="text" id="diasAtraso" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></div>
+                </div>
+                <div class="mb-4"><label for="progresso" class="block text-sm font-medium text-gray-700">Progresso (%)</label><input type="number" id="progresso" min="0" max="100" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></div>
+                <div class="mb-4">
+                    <label for="imageUpload" class="block text-sm font-medium text-gray-700">Carregar Imagem</label>
+                    <input type="file" id="imageUpload" accept="image/*" class="file-input-brastex mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold">
+                    <div id="image-preview-container" class="mt-2 hidden">
+                        <span class="block text-xs font-medium text-gray-600 mb-1">Imagem Atual:</span>
+                        <img id="image-preview" src="" alt="Pré-visualização da imagem" class="max-h-32 rounded-lg border">
+                    </div>
+                    <input type="hidden" id="imageUrl">
+                </div>
+                 <div class="flex items-center mb-4">
+                    <input id="pago" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <label for="pago" class="ml-2 block text-sm font-medium text-gray-900">Marcado como Pago</label>
+                </div>
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 brastex-btn text-white rounded-md">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Image Viewer Modal -->
+    <div id="image-modal" class="modal-overlay hidden"><div class="modal-content p-4 text-center"><img id="modal-image" src="" alt="Imagem da Pendência" class="max-w-full max-h-[80vh] mx-auto rounded-lg"><button id="close-image-modal" class="mt-4 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Fechar</button></div></div>
+
+    <!-- Confirm Modal -->
+    <div id="confirm-modal" class="modal-overlay hidden"><div class="modal-content text-center max-w-sm"><h2 id="confirm-title" class="text-lg font-bold mb-4">Confirmar Ação</h2><p id="confirm-message" class="text-gray-600 mb-6">Tem certeza que deseja continuar?</p><div class="flex justify-center space-x-4"><button id="confirm-cancel-btn" class="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button><button id="confirm-ok-btn" class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Excluir</button></div></div></div>
+
+    <!-- Report Modal -->
+    <div id="report-modal" class="modal-overlay hidden">
+        <div class="modal-content max-w-2xl">
+            <div id="report-content" class="flex flex-col h-full">
+                <!-- Report Header -->
+                <div class="flex justify-between items-start pb-4 border-b">
+                    <div class="flex items-center">
+                         <img src="https://www.elgalvao.com.br/imagens/bras.png" alt="Logo Brastex" class="h-14 mr-4">
+                        <div>
+                            <h2 class="text-xl font-bold" style="color: var(--brastex-blue);">Relatório de Pendência</h2>
+                            <p class="text-sm text-gray-500">Brastex Facilities</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500">Gerado em: <span id="report-date"></span></p>
+                </div>
+                
+                <!-- Report Body -->
+                <div class="flex-grow py-4">
+                    <div class="mb-4">
+                        <h3 class="text-base font-semibold text-gray-800 mb-2 border-b pb-1">Detalhes do Contrato</h3>
+                        <div class="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                            <div><strong>Nº Contrato:</strong> <span id="report-contrato"></span></div>
+                            <div><strong>Área Técnica:</strong> <span id="report-area"></span></div>
+                            <div class="col-span-2 pt-1"><strong>Descrição:</strong> <span id="report-descricao"></span></div>
+                            <div class="col-span-2"><strong>Pendência:</strong> <span id="report-pendencia"></span></div>
+                            <div><strong>Data Programada:</strong> <span id="report-data-programada"></span></div>
+                            <div><strong>Dias de Atraso:</strong> <span id="report-dias-atraso"></span></div>
+                            <div><strong>Status:</strong> <span id="report-status" class="font-semibold"></span></div>
+                            <div><strong>Pagamento:</strong> <span id="report-pago" class="font-semibold"></span></div>
+                        </div>
+                    </div>
+                     <div class="mb-4">
+                        <h3 class="text-base font-semibold text-gray-800 mb-2 border-b pb-1">Progresso</h3>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div id="report-progress-bar" class="h-4 rounded-full text-center text-white text-xs leading-4"></div>
+                        </div>
+                    </div>
+                    <div class="flex-grow">
+                        <h3 class="text-base font-semibold text-gray-800 mb-2 border-b pb-1">Evidência Fotográfica</h3>
+                        <div id="report-image-container" class="mt-2 text-center">
+                            <img id="report-image" src="" class="max-w-full rounded-lg border shadow-md inline-block">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Footer -->
+                <div class="text-xs text-center text-gray-400 border-t pt-2">
+                    <p>_________________________</p>
+                    <p>Assinatura do Responsável</p>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-4 mt-6 print-hidden">
+                <button type="button" id="close-report-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Fechar</button>
+                <button type="button" id="print-report-btn" class="px-4 py-2 brastex-btn text-white rounded-md flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm7-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Imprimir
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // --- DATA SOURCE ---
+    let pendenciasData = [
+        { id: 1, numeroContrato: 'N/A', descricao: 'Obras Geral lado A', pendencia: 'Retirada do caminhão Munck.', dataProgramada: 'Aguardando', status: 'Atrasado / Não Iniciado', diasAtraso: '1a 4m 26d', areaTecnica: 'Obras Gerais', progresso: 0, imageUrl: 'https://placehold.co/600x400/cccccc/ffffff?text=Caminhão+Munck', pago: true },
+        { id: 2, numeroContrato: 'N/A', descricao: 'Retirada dos 06 transformadores (Subestação 03A)', pendencia: 'Fechamento da parede, reboco e calçada.', dataProgramada: '15/07/2025', status: 'Concluído', diasAtraso: 'N/A', areaTecnica: 'Subestação', progresso: 100, imageUrl: '', pago: true },
+        { id: 3, numeroContrato: '60/2023', descricao: 'Recuperação Estrutural do Pleno Lado B e Pintura', pendencia: 'Realizar reparos nas fissuras.', dataProgramada: '28/07/2025', status: 'Em Andamento', diasAtraso: '4m 7d', areaTecnica: 'Pleno e Prensa', progresso: 50, imageUrl: '', pago: true },
+        { id: 4, numeroContrato: '60/2023', descricao: 'Recuperação Estrutural do pleno lado B e Prensa', pendencia: 'Troca dos tubos com vazamento.', dataProgramada: '28/07/2025', status: 'Atrasado / Não Iniciado', diasAtraso: '1a 2m 15d', areaTecnica: 'Pleno e Prensa', progresso: 10, imageUrl: 'https://placehold.co/600x400/cccccc/ffffff?text=Tubo+com+Vazamento', pago: true },
+        { id: 5, numeroContrato: '??/2024', descricao: 'Reforma dos canais lado A', pendencia: 'Pintar o canal com tinta Epóxi.', dataProgramada: '04/08/2025', status: 'Em Andamento', diasAtraso: '2m 21d', areaTecnica: 'Canal', progresso: 60, imageUrl: '', pago: true },
+        { id: 6, numeroContrato: '05/2025', descricao: 'Reforma da CTA2, CTA3 e CTA5 lado B', pendencia: 'Retirada dos entulhos da área externa.', dataProgramada: '28/07/2025', status: 'Atrasado / Não Iniciado', diasAtraso: '3m 20d', areaTecnica: 'CTAs', progresso: 0, imageUrl: '', pago: false },
+        { id: 7, numeroContrato: '05/2025', descricao: 'Melhorias das CTA2, CTA3 e CTA5 lado B', pendencia: 'Interligação da CTA2B para CTA3B.', dataProgramada: '28/07/25', status: 'Em Andamento', diasAtraso: '4m 7d', areaTecnica: 'CTAs', progresso: 75, imageUrl: '', pago: false },
+        { id: 8, numeroContrato: '05/2025', descricao: 'Melhorias das CTA2, CTA3 e CTA5 lado B', pendencia: 'Interligação da CTA4B para CTA5B.', dataProgramada: 'A avaliar', status: 'Em Andamento', diasAtraso: '1m 24d', areaTecnica: 'CTAs', progresso: 40, imageUrl: '', pago: false },
+        { id: 9, numeroContrato: '09/2025', descricao: 'Instalação da nova máquina ACO11', pendencia: 'Colocar isotelhas.', dataProgramada: 'A avaliar', status: 'Atrasado / Não Iniciado', diasAtraso: '2m', areaTecnica: 'Preparação e Open End', progresso: 0, imageUrl: '', pago: true },
+        { id: 10, numeroContrato: '09/2025', descricao: 'Instalação da nova máquina ACO11', pendencia: 'Retirada de entulhos.', dataProgramada: '09/07/2025', status: 'Concluído', diasAtraso: 'N/A', areaTecnica: 'Preparação e Open End', progresso: 100, imageUrl: '', pago: true },
+        { id: 11, numeroContrato: '09/2025', descricao: 'Retirada da parede para as novas máquinas C011', pendencia: 'Fechamento e acabamento da viga.', dataProgramada: 'N/A', status: 'Concluído', diasAtraso: 'N/A', areaTecnica: 'Preparação e Open End', progresso: 100, imageUrl: '', pago: true },
+        { id: 12, numeroContrato: '18/2025', descricao: 'Reforma na central 06B', pendencia: 'Recuperar sala do saco coletor e outros.', dataProgramada: '13/07/2025', status: 'Em Andamento', diasAtraso: '1m 12d', areaTecnica: 'CTAs', progresso: 80, imageUrl: '', pago: false },
+        { id: 13, numeroContrato: '16/2025', descricao: 'Abertura do Canal ar técnico novo para CTA6', pendencia: 'Fazer abertura para 8 grelhas.', dataProgramada: '23/07/2025', status: 'Atrasado / Não Iniciado', diasAtraso: '1m 20d', areaTecnica: 'Canal', progresso: 5, imageUrl: '', pago: false },
+        { id: 14, numeroContrato: '16/2025', descricao: 'Pintura do Canal', pendencia: 'Realizar emassamento e pintura.', dataProgramada: 'Aguardando', status: 'Atrasado / Não Iniciado', diasAtraso: '1m 9d', areaTecnica: 'Canal', progresso: 0, imageUrl: '', pago: false }
+    ];
+
+    // --- GLOBAL VARIABLES & DOM ELEMENTS ---
+    let statusPieChartInstance = null, areaBarChartInstance = null, currentFilter = 'Todos', confirmCallback = null;
+    const tableBody = document.getElementById('pendencias-table-body');
+    const formModal = document.getElementById('form-modal');
+    const imageModal = document.getElementById('image-modal');
+    const confirmModal = document.getElementById('confirm-modal');
+    const reportModal = document.getElementById('report-modal');
+    const pendenciaForm = document.getElementById('pendencia-form');
+
+    // --- HELPER FUNCTIONS ---
+    const getStatusStyles = (status) => {
+        switch (status) {
+            case 'Concluído': return { progressColor: 'bg-green-500', selectBg: 'bg-green-100 text-green-800', textColor: 'text-green-600' };
+            case 'Em Andamento': return { progressColor: 'bg-yellow-500', selectBg: 'bg-yellow-100 text-yellow-800', textColor: 'text-yellow-600' };
+            case 'Atrasado / Não Iniciado': return { progressColor: 'bg-red-500', selectBg: 'bg-red-100 text-red-800', textColor: 'text-red-600' };
+            default: return { progressColor: 'bg-gray-500', selectBg: 'bg-gray-100 text-gray-800', textColor: 'text-gray-600' };
+        }
+    };
+
+    const readFileAsDataURL = (file) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (error) => reject(error);
+        reader.readAsDataURL(file);
+    });
+
+    // --- RENDER FUNCTIONS ---
+    function renderSummaryCards(data) {
+        document.getElementById('total-pendencias').textContent = data.length;
+        document.getElementById('total-concluidos').textContent = data.filter(p => p.status === 'Concluído').length;
+        document.getElementById('total-andamento').textContent = data.filter(p => p.status === 'Em Andamento').length;
+        document.getElementById('total-atraso').textContent = data.filter(p => p.status === 'Atrasado / Não Iniciado').length;
+    }
+
+    function renderTable(data) {
+        tableBody.innerHTML = '';
+        if (data.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-gray-500">Nenhuma pendência encontrada.</td></tr>`;
+            return;
+        }
+        data.forEach(item => {
+            const styles = getStatusStyles(item.status);
+            const row = document.createElement('tr');
+            row.className = `bg-white border-b ${!item.pago ? 'not-paid' : ''}`;
+            row.innerHTML = `
+                <td class="px-6 py-4 font-medium ${!item.pago ? 'text-gray-500' : 'text-gray-900'}">${item.numeroContrato}</td>
+                <td class="px-6 py-4">
+                    <div class="font-semibold ${!item.pago ? '' : 'text-gray-800'}">${item.descricao}</div>
+                    <div class="text-xs">${item.pendencia}</div>
+                </td>
+                <td class="px-6 py-4">${item.dataProgramada}</td>
+                <td class="px-6 py-4 text-center">
+                    <input type="checkbox" data-id="${item.id}" class="payment-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${item.pago ? 'checked' : ''}>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex items-center"><div class="w-full bg-gray-200 rounded-full h-2.5 mr-2"><div class="${styles.progressColor} h-2.5 rounded-full" style="width: ${item.progresso}%"></div></div><span class="text-xs font-medium">${item.progresso}%</span></div>
+                </td>
+                <td class="px-6 py-4">
+                    <select data-id="${item.id}" class="status-select text-xs p-1 rounded-md border-0 focus:ring-0 ${styles.selectBg}">
+                        <option value="Atrasado / Não Iniciado" ${item.status === 'Atrasado / Não Iniciado' ? 'selected' : ''}>Atrasado</option>
+                        <option value="Em Andamento" ${item.status === 'Em Andamento' ? 'selected' : ''}>Em Andamento</option>
+                        <option value="Concluído" ${item.status === 'Concluído' ? 'selected' : ''}>Concluído</option>
+                    </select>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex items-center space-x-2">
+                        <button data-id="${item.id}" class="report-btn p-1 text-gray-500 hover:text-green-600" title="Gerar Relatório"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></button>
+                        <button data-id="${item.id}" class="edit-btn p-1 text-gray-500 hover:text-blue-600" title="Editar"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z"></path></svg></button>
+                        ${item.imageUrl ? `<button data-id="${item.id}" class="image-btn p-1 text-gray-500 hover:text-purple-600" title="Ver Imagem"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></button>` : ''}
+                        <button data-id="${item.id}" class="delete-btn p-1 text-gray-500 hover:text-red-600" title="Excluir"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                    </div>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    function renderCharts(data) {
+        const statusCounts = { 'Concluído': 0, 'Em Andamento': 0, 'Atrasado / Não Iniciado': 0 };
+        const areaCounts = {};
+        data.forEach(p => {
+            statusCounts[p.status]++;
+            areaCounts[p.areaTecnica] = (areaCounts[p.areaTecnica] || 0) + 1;
+        });
+        if (statusPieChartInstance) statusPieChartInstance.destroy();
+        statusPieChartInstance = new Chart(document.getElementById('statusPieChart'), {
+            type: 'pie',
+            plugins: [ChartDataLabels],
+            data: {
+                labels: Object.keys(statusCounts),
+                datasets: [{
+                    data: Object.values(statusCounts),
+                    backgroundColor: ['#16a34a', '#f59e0b', '#dc2626'],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#333'
+                        }
+                    },
+                    datalabels: {
+                        formatter: (value, ctx) => {
+                            const datapoints = ctx.chart.data.datasets[0].data;
+                            const total = datapoints.reduce((total, datapoint) => total + datapoint, 0);
+                            const percentage = value / total * 100;
+                            if (percentage < 5) {
+                                return '';
+                            }
+                            return percentage.toFixed(1) + '%';
+                        },
+                        color: '#fff',
+                        font: {
+                            weight: 'bold',
+                            size: 14
+                        }
+                    }
+                }
+            }
+        });
+        if (areaBarChartInstance) areaBarChartInstance.destroy();
+        areaBarChartInstance = new Chart(document.getElementById('areaBarChart'), { type: 'bar', data: { labels: Object.keys(areaCounts), datasets: [{ label: 'Nº de Pendências', data: Object.values(areaCounts), backgroundColor: 'var(--brastex-blue)', borderRadius: 4 }] }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+    }
+    
+    function updateDashboard() {
+        const filteredData = currentFilter === 'Todos' ? pendenciasData : pendenciasData.filter(p => p.status === currentFilter);
+        renderSummaryCards(pendenciasData);
+        renderTable(filteredData);
+        renderCharts(pendenciasData);
+    }
+
+    // --- MODAL & FORM HANDLING ---
+    function openFormModal(id = null) {
+        pendenciaForm.reset();
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        imagePreviewContainer.classList.add('hidden');
+
+        if (id) {
+            const item = pendenciasData.find(p => p.id === id);
+            document.getElementById('modal-title').textContent = 'Editar Pendência';
+            document.getElementById('pendencia-id').value = item.id;
+            document.getElementById('numeroContrato').value = item.numeroContrato;
+            document.getElementById('descricao').value = item.descricao;
+            document.getElementById('pendencia').value = item.pendencia;
+            document.getElementById('areaTecnica').value = item.areaTecnica;
+            document.getElementById('progresso').value = item.progresso;
+            document.getElementById('dataProgramada').value = item.dataProgramada;
+            document.getElementById('diasAtraso').value = item.diasAtraso;
+            document.getElementById('imageUrl').value = item.imageUrl;
+            document.getElementById('pago').checked = item.pago;
+            if (item.imageUrl) {
+                imagePreview.src = item.imageUrl;
+                imagePreviewContainer.classList.remove('hidden');
+            }
+        } else {
+            document.getElementById('modal-title').textContent = 'Nova Pendência';
+            document.getElementById('pendencia-id').value = '';
+            document.getElementById('imageUrl').value = '';
+        }
+        formModal.classList.remove('hidden');
+    }
+
+    async function saveFormData(e) {
+        e.preventDefault();
+        const id = parseInt(document.getElementById('pendencia-id').value);
+        const imageUploadInput = document.getElementById('imageUpload');
+        let imageUrl = document.getElementById('imageUrl').value;
+
+        if (imageUploadInput.files && imageUploadInput.files[0]) {
+            try { imageUrl = await readFileAsDataURL(imageUploadInput.files[0]); } catch (error) { console.error("Erro ao ler o ficheiro:", error); }
+        }
+
+        const formData = {
+            numeroContrato: document.getElementById('numeroContrato').value,
+            descricao: document.getElementById('descricao').value,
+            pendencia: document.getElementById('pendencia').value,
+            areaTecnica: document.getElementById('areaTecnica').value,
+            progresso: parseInt(document.getElementById('progresso').value) || 0,
+            dataProgramada: document.getElementById('dataProgramada').value,
+            diasAtraso: document.getElementById('diasAtraso').value,
+            imageUrl: imageUrl,
+            pago: document.getElementById('pago').checked
+        };
+
+        if (id) {
+            const index = pendenciasData.findIndex(p => p.id === id);
+            pendenciasData[index] = { ...pendenciasData[index], ...formData };
+        } else {
+            formData.id = pendenciasData.length > 0 ? Math.max(...pendenciasData.map(p => p.id)) + 1 : 1;
+            formData.status = 'Atrasado / Não Iniciado';
+            pendenciasData.push(formData);
+        }
+        formModal.classList.add('hidden');
+        updateDashboard();
+    }
+    
+    function showConfirmModal(message, onConfirm) {
+        document.getElementById('confirm-message').textContent = message;
+        confirmCallback = onConfirm;
+        confirmModal.classList.remove('hidden');
+    }
+
+    function openReportModal(id) {
+        const item = pendenciasData.find(p => p.id === id);
+        if (!item) return;
+
+        document.getElementById('report-date').textContent = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+        document.getElementById('report-contrato').textContent = item.numeroContrato;
+        document.getElementById('report-area').textContent = item.areaTecnica;
+        document.getElementById('report-descricao').textContent = item.descricao;
+        document.getElementById('report-pendencia').textContent = item.pendencia;
+        document.getElementById('report-data-programada').textContent = item.dataProgramada;
+        document.getElementById('report-dias-atraso').textContent = item.diasAtraso;
+        
+        const statusSpan = document.getElementById('report-status');
+        const statusStyles = getStatusStyles(item.status);
+        statusSpan.textContent = item.status;
+        statusSpan.className = `font-semibold ${statusStyles.textColor}`;
+
+        const pagoSpan = document.getElementById('report-pago');
+        pagoSpan.textContent = item.pago ? 'Sim' : 'Não';
+        pagoSpan.className = `font-semibold ${item.pago ? 'text-green-600' : 'text-red-600'}`;
+
+        
+        const progressBar = document.getElementById('report-progress-bar');
+        progressBar.style.width = `${item.progresso}%`;
+        progressBar.textContent = `${item.progresso}%`;
+        progressBar.className = `h-4 rounded-full text-center text-white text-xs leading-4 ${statusStyles.progressColor}`;
+
+        const imageContainer = document.getElementById('report-image-container');
+        const reportImage = document.getElementById('report-image');
+        if (item.imageUrl) {
+            reportImage.src = item.imageUrl;
+            imageContainer.classList.remove('hidden');
+        } else {
+            reportImage.src = '';
+            imageContainer.classList.add('hidden');
+        }
+
+        reportModal.classList.remove('hidden');
+    }
+
+
+    // --- EVENT LISTENERS ---
+    document.getElementById('add-new-btn').addEventListener('click', () => openFormModal());
+    document.getElementById('cancel-btn').addEventListener('click', () => formModal.classList.add('hidden'));
+    pendenciaForm.addEventListener('submit', saveFormData);
+    
+    document.getElementById('imageUpload').addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('image-preview').src = e.target.result;
+                document.getElementById('image-preview-container').classList.remove('hidden');
+                document.getElementById('imageUrl').value = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    document.getElementById('close-image-modal').addEventListener('click', () => imageModal.classList.add('hidden'));
+    imageModal.addEventListener('click', (e) => { if(e.target === imageModal) imageModal.classList.add('hidden'); });
+    
+    document.getElementById('confirm-ok-btn').addEventListener('click', () => {
+        if (confirmCallback) confirmCallback();
+        confirmModal.classList.add('hidden');
+    });
+    document.getElementById('confirm-cancel-btn').addEventListener('click', () => confirmModal.classList.add('hidden'));
+
+    document.getElementById('close-report-btn').addEventListener('click', () => reportModal.classList.add('hidden'));
+    document.getElementById('print-report-btn').addEventListener('click', () => window.print());
+
+    document.getElementById('filters').addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            currentFilter = e.target.dataset.status;
+            const filteredData = currentFilter === 'Todos' ? pendenciasData : pendenciasData.filter(p => p.status === currentFilter);
+            renderTable(filteredData);
+        }
+    });
+
+    tableBody.addEventListener('click', (e) => {
+        const target = e.target.closest('button');
+        if (!target) return;
+        const id = parseInt(target.dataset.id);
+
+        if (target.classList.contains('edit-btn')) openFormModal(id);
+        if (target.classList.contains('delete-btn')) {
+            showConfirmModal('Tem certeza que deseja excluir esta pendência?', () => {
+                pendenciasData = pendenciasData.filter(p => p.id !== id);
+                updateDashboard();
+            });
+        }
+        if (target.classList.contains('image-btn')) {
+            const item = pendenciasData.find(p => p.id === id);
+            document.getElementById('modal-image').src = item.imageUrl;
+            imageModal.classList.remove('hidden');
+        }
+        if (target.classList.contains('report-btn')) {
+            openReportModal(id);
+        }
+    });
+
+    tableBody.addEventListener('change', (e) => {
+        const id = parseInt(e.target.dataset.id);
+        const item = pendenciasData.find(p => p.id === id);
+        if (e.target.classList.contains('status-select')) {
+            item.status = e.target.value;
+            if (item.status === 'Concluído') item.progresso = 100;
+        }
+        if (e.target.classList.contains('payment-checkbox')) {
+            item.pago = e.target.checked;
+        }
+        updateDashboard();
+    });
+
+    // --- INITIALIZATION ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const updateDateEl = document.getElementById('updateDate');
+        if (updateDateEl) {
+            updateDateEl.textContent = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+        }
+        updateDashboard();
+    });
+    </script>
+</body>
+</html>

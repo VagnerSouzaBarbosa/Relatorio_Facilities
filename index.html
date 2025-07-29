@@ -84,7 +84,7 @@
         @media print {
             @page {
                 size: A4 portrait;
-                margin: 0.5cm;
+                margin: 1cm;
             }
 
             body {
@@ -104,26 +104,36 @@
                 left: 0;
                 top: 0;
                 width: 100%;
-                height: auto;
+                height: 100%;
                 background: white;
+                display: block !important;
+                overflow: hidden;
             }
 
             #report-modal .modal-content {
                 width: 100%;
-                height: auto;
+                height: 100%;
                 max-width: 100%;
+                max-height: 100%;
                 box-shadow: none;
-                border: none;
-                padding: 0;
+                border: 1px solid #ccc;
+                padding: 1cm;
                 font-size: 10pt;
             }
 
             #report-content {
                 page-break-inside: avoid;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            #report-content > div {
+                margin-bottom: 0.5cm;
             }
 
             #report-image {
-                max-height: 10cm; /* Adjust image height for A4 */
+                max-height: 8cm;
                 width: auto;
                 object-fit: contain;
             }

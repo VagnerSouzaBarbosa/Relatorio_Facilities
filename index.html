@@ -4,12 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Brastex Dashboard Facilities Resumo</title>
-    
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#001d3d">
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js for charts -->
@@ -90,7 +84,7 @@
         @media print {
             @page {
                 size: A4 portrait;
-                margin: 1cm;
+                margin: 0.5cm;
             }
 
             body {
@@ -110,35 +104,26 @@
                 left: 0;
                 top: 0;
                 width: 100%;
-                height: 100%;
+                height: auto;
                 background: white;
-                display: block !important;
             }
 
             #report-modal .modal-content {
                 width: 100%;
-                height: 100%;
+                height: auto;
                 max-width: 100%;
-                max-height: 100%;
                 box-shadow: none;
-                border: 1px solid #ccc;
-                padding: 1cm;
+                border: none;
+                padding: 0;
                 font-size: 10pt;
             }
 
             #report-content {
                 page-break-inside: avoid;
-                height: 100%;
-                display: flex;
-                flex-direction: column;
-            }
-            
-            #report-content > div {
-                margin-bottom: 0.5cm;
             }
 
             #report-image {
-                max-height: 8cm;
+                max-height: 10cm; /* Adjust image height for A4 */
                 width: auto;
                 object-fit: contain;
             }
@@ -179,7 +164,7 @@
         <!-- Charts -->
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
             <div class="lg:col-span-2 card p-6"><h3 class="text-lg font-semibold text-gray-700 mb-4">Pendências por Status</h3><canvas id="statusPieChart"></canvas></div>
-            <div class="lg:col-span-3 card p-6"><h3 class="text-lg font-semibold text-gray-700 mb-4">Descrição de Contrato</h3><canvas id="areaBarChart"></canvas></div>
+            <div class="lg:col-span-3 card p-6"><h3 class="text-lg font-semibold text-gray-700 mb-4">Pendências por Descrição de Contrato</h3><canvas id="areaBarChart"></canvas></div>
         </div>
 
         <!-- Table and Filters -->
@@ -220,7 +205,7 @@
                 <input type="hidden" id="pendencia-id">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="mb-4"><label for="numeroContrato" class="block text-sm font-medium text-gray-700">Nº Contrato</label><input type="text" id="numeroContrato" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></div>
-                    <div class="mb-4"><label for="areaTecnica" class="block text-sm font-medium text-gray-700">Descrição de Contrato</label><input type="text" id="areaTecnica" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></div>
+                    <div class="mb-4"><label for="descricaoContrato" class="block text-sm font-medium text-gray-700">Descrição de Contrato</label><input type="text" id="descricaoContrato" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></div>
                 </div>
                 <div class="mb-4"><label for="descricao" class="block text-sm font-medium text-gray-700">Descrição</label><input type="text" id="descricao" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required></div>
                 <div class="mb-4"><label for="pendencia" class="block text-sm font-medium text-gray-700">Pendência</label><textarea id="pendencia" rows="2" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea></div>
@@ -278,7 +263,7 @@
                         <h3 class="text-base font-semibold text-gray-800 mb-2 border-b pb-1">Detalhes do Contrato</h3>
                         <div class="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
                             <div><strong>Nº Contrato:</strong> <span id="report-contrato"></span></div>
-                            <div><strong>Descrição de Contrato:</strong> <span id="report-area"></span></div>
+                            <div><strong>Descrição de Contrato:</strong> <span id="report-descricao-contrato"></span></div>
                             <div class="col-span-2 pt-1"><strong>Descrição:</strong> <span id="report-descricao"></span></div>
                             <div class="col-span-2"><strong>Pendência:</strong> <span id="report-pendencia"></span></div>
                             <div><strong>Data Programada:</strong> <span id="report-data-programada"></span></div>
@@ -320,20 +305,20 @@
     <script>
     // --- DATA SOURCE ---
     let pendenciasData = [
-        { id: 1, numeroContrato: 'N/A', descricao: 'Obras Geral lado A', pendencia: 'Retirada do caminhão Munck.', dataProgramada: 'Aguardando', status: 'Atrasado / Não Iniciado', diasAtraso: '1a 4m 26d', areaTecnica: 'Obras Gerais', progresso: 0, imageUrl: 'https://placehold.co/600x400/cccccc/ffffff?text=Caminhão+Munck', pago: true },
-        { id: 2, numeroContrato: 'N/A', descricao: 'Retirada dos 06 transformadores (Subestação 03A)', pendencia: 'Fechamento da parede, reboco e calçada.', dataProgramada: '15/07/2025', status: 'Concluído', diasAtraso: 'N/A', areaTecnica: 'Subestação', progresso: 100, imageUrl: '', pago: true },
-        { id: 3, numeroContrato: '60/2023', descricao: 'Recuperação Estrutural do Pleno Lado B e Pintura', pendencia: 'Realizar reparos nas fissuras.', dataProgramada: '28/07/2025', status: 'Em Andamento', diasAtraso: '4m 7d', areaTecnica: 'Pleno e Prensa', progresso: 50, imageUrl: '', pago: true },
-        { id: 4, numeroContrato: '60/2023', descricao: 'Recuperação Estrutural do pleno lado B e Prensa', pendencia: 'Troca dos tubos com vazamento.', dataProgramada: '28/07/2025', status: 'Atrasado / Não Iniciado', diasAtraso: '1a 2m 15d', areaTecnica: 'Pleno e Prensa', progresso: 10, imageUrl: 'https://placehold.co/600x400/cccccc/ffffff?text=Tubo+com+Vazamento', pago: true },
-        { id: 5, numeroContrato: '??/2024', descricao: 'Reforma dos canais lado A', pendencia: 'Pintar o canal com tinta Epóxi.', dataProgramada: '04/08/2025', status: 'Em Andamento', diasAtraso: '2m 21d', areaTecnica: 'Canal', progresso: 60, imageUrl: '', pago: true },
-        { id: 6, numeroContrato: '05/2025', descricao: 'Reforma da CTA2, CTA3 e CTA5 lado B', pendencia: 'Retirada dos entulhos da área externa.', dataProgramada: '28/07/2025', status: 'Atrasado / Não Iniciado', diasAtraso: '3m 20d', areaTecnica: 'CTAs', progresso: 0, imageUrl: '', pago: false },
-        { id: 7, numeroContrato: '05/2025', descricao: 'Melhorias das CTA2, CTA3 e CTA5 lado B', pendencia: 'Interligação da CTA2B para CTA3B.', dataProgramada: '28/07/25', status: 'Em Andamento', diasAtraso: '4m 7d', areaTecnica: 'CTAs', progresso: 75, imageUrl: '', pago: false },
-        { id: 8, numeroContrato: '05/2025', descricao: 'Melhorias das CTA2, CTA3 e CTA5 lado B', pendencia: 'Interligação da CTA4B para CTA5B.', dataProgramada: 'A avaliar', status: 'Em Andamento', diasAtraso: '1m 24d', areaTecnica: 'CTAs', progresso: 40, imageUrl: '', pago: false },
-        { id: 9, numeroContrato: '09/2025', descricao: 'Instalação da nova máquina ACO11', pendencia: 'Colocar isotelhas.', dataProgramada: 'A avaliar', status: 'Atrasado / Não Iniciado', diasAtraso: '2m', areaTecnica: 'Preparação e Open End', progresso: 0, imageUrl: '', pago: true },
-        { id: 10, numeroContrato: '09/2025', descricao: 'Instalação da nova máquina ACO11', pendencia: 'Retirada de entulhos.', dataProgramada: '09/07/2025', status: 'Concluído', diasAtraso: 'N/A', areaTecnica: 'Preparação e Open End', progresso: 100, imageUrl: '', pago: true },
-        { id: 11, numeroContrato: '09/2025', descricao: 'Retirada da parede para as novas máquinas C011', pendencia: 'Fechamento e acabamento da viga.', dataProgramada: 'N/A', status: 'Concluído', diasAtraso: 'N/A', areaTecnica: 'Preparação e Open End', progresso: 100, imageUrl: '', pago: true },
-        { id: 12, numeroContrato: '18/2025', descricao: 'Reforma na central 06B', pendencia: 'Recuperar sala do saco coletor e outros.', dataProgramada: '13/07/2025', status: 'Em Andamento', diasAtraso: '1m 12d', areaTecnica: 'CTAs', progresso: 80, imageUrl: '', pago: false },
-        { id: 13, numeroContrato: '16/2025', descricao: 'Abertura do Canal ar técnico novo para CTA6', pendencia: 'Fazer abertura para 8 grelhas.', dataProgramada: '23/07/2025', status: 'Atrasado / Não Iniciado', diasAtraso: '1m 20d', areaTecnica: 'Canal', progresso: 5, imageUrl: '', pago: false },
-        { id: 14, numeroContrato: '16/2025', descricao: 'Pintura do Canal', pendencia: 'Realizar emassamento e pintura.', dataProgramada: 'Aguardando', status: 'Atrasado / Não Iniciado', diasAtraso: '1m 9d', areaTecnica: 'Canal', progresso: 0, imageUrl: '', pago: false }
+        { id: 1, numeroContrato: 'N/A', descricao: 'Obras Geral lado A', pendencia: 'Retirada do caminhão Munck.', dataProgramada: 'Aguardando', status: 'Atrasado / Não Iniciado', diasAtraso: '1a 4m 26d', descricaoContrato: 'Obras Gerais', progresso: 0, imageUrl: 'https://placehold.co/600x400/cccccc/ffffff?text=Caminhão+Munck', pago: true },
+        { id: 2, numeroContrato: 'N/A', descricao: 'Retirada dos 06 transformadores (Subestação 03A)', pendencia: 'Fechamento da parede, reboco e calçada.', dataProgramada: '15/07/2025', status: 'Concluído', diasAtraso: 'N/A', descricaoContrato: 'Subestação', progresso: 100, imageUrl: '', pago: true },
+        { id: 3, numeroContrato: '60/2023', descricao: 'Recuperação Estrutural do Pleno Lado B e Pintura', pendencia: 'Realizar reparos nas fissuras.', dataProgramada: '28/07/2025', status: 'Em Andamento', diasAtraso: '4m 7d', descricaoContrato: 'Pleno e Prensa', progresso: 50, imageUrl: '', pago: true },
+        { id: 4, numeroContrato: '60/2023', descricao: 'Recuperação Estrutural do pleno lado B e Prensa', pendencia: 'Troca dos tubos com vazamento.', dataProgramada: '28/07/2025', status: 'Atrasado / Não Iniciado', diasAtraso: '1a 2m 15d', descricaoContrato: 'Pleno e Prensa', progresso: 10, imageUrl: 'https://placehold.co/600x400/cccccc/ffffff?text=Tubo+com+Vazamento', pago: true },
+        { id: 5, numeroContrato: '??/2024', descricao: 'Reforma dos canais lado A', pendencia: 'Pintar o canal com tinta Epóxi.', dataProgramada: '04/08/2025', status: 'Em Andamento', diasAtraso: '2m 21d', descricaoContrato: 'Canal', progresso: 60, imageUrl: '', pago: true },
+        { id: 6, numeroContrato: '05/2025', descricao: 'Reforma da CTA2, CTA3 e CTA5 lado B', pendencia: 'Retirada dos entulhos da área externa.', dataProgramada: '28/07/2025', status: 'Atrasado / Não Iniciado', diasAtraso: '3m 20d', descricaoContrato: 'CTAs', progresso: 0, imageUrl: '', pago: false },
+        { id: 7, numeroContrato: '05/2025', descricao: 'Melhorias das CTA2, CTA3 e CTA5 lado B', pendencia: 'Interligação da CTA2B para CTA3B.', dataProgramada: '28/07/25', status: 'Em Andamento', diasAtraso: '4m 7d', descricaoContrato: 'CTAs', progresso: 75, imageUrl: '', pago: false },
+        { id: 8, numeroContrato: '05/2025', descricao: 'Melhorias das CTA2, CTA3 e CTA5 lado B', pendencia: 'Interligação da CTA4B para CTA5B.', dataProgramada: 'A avaliar', status: 'Em Andamento', diasAtraso: '1m 24d', descricaoContrato: 'CTAs', progresso: 40, imageUrl: '', pago: false },
+        { id: 9, numeroContrato: '09/2025', descricao: 'Instalação da nova máquina ACO11', pendencia: 'Colocar isotelhas.', dataProgramada: 'A avaliar', status: 'Atrasado / Não Iniciado', diasAtraso: '2m', descricaoContrato: 'Preparação e Open End', progresso: 0, imageUrl: '', pago: true },
+        { id: 10, numeroContrato: '09/2025', descricao: 'Instalação da nova máquina ACO11', pendencia: 'Retirada de entulhos.', dataProgramada: '09/07/2025', status: 'Concluído', diasAtraso: 'N/A', descricaoContrato: 'Preparação e Open End', progresso: 100, imageUrl: '', pago: true },
+        { id: 11, numeroContrato: '09/2025', descricao: 'Retirada da parede para as novas máquinas C011', pendencia: 'Fechamento e acabamento da viga.', dataProgramada: 'N/A', status: 'Concluído', diasAtraso: 'N/A', descricaoContrato: 'Preparação e Open End', progresso: 100, imageUrl: '', pago: true },
+        { id: 12, numeroContrato: '18/2025', descricao: 'Reforma na central 06B', pendencia: 'Recuperar sala do saco coletor e outros.', dataProgramada: '13/07/2025', status: 'Em Andamento', diasAtraso: '1m 12d', descricaoContrato: 'CTAs', progresso: 80, imageUrl: '', pago: false },
+        { id: 13, numeroContrato: '16/2025', descricao: 'Abertura do Canal ar técnico novo para CTA6', pendencia: 'Fazer abertura para 8 grelhas.', dataProgramada: '23/07/2025', status: 'Atrasado / Não Iniciado', diasAtraso: '1m 20d', descricaoContrato: 'Canal', progresso: 5, imageUrl: '', pago: false },
+        { id: 14, numeroContrato: '16/2025', descricao: 'Pintura do Canal', pendencia: 'Realizar emassamento e pintura.', dataProgramada: 'Aguardando', status: 'Atrasado / Não Iniciado', diasAtraso: '1m 9d', descricaoContrato: 'Canal', progresso: 0, imageUrl: '', pago: false }
     ];
 
     // --- GLOBAL VARIABLES & DOM ELEMENTS ---
@@ -418,7 +403,7 @@
         const areaCounts = {};
         data.forEach(p => {
             statusCounts[p.status]++;
-            areaCounts[p.areaTecnica] = (areaCounts[p.areaTecnica] || 0) + 1;
+            areaCounts[p.descricaoContrato] = (areaCounts[p.descricaoContrato] || 0) + 1;
         });
         if (statusPieChartInstance) statusPieChartInstance.destroy();
         statusPieChartInstance = new Chart(document.getElementById('statusPieChart'), {
@@ -486,7 +471,7 @@
             document.getElementById('numeroContrato').value = item.numeroContrato;
             document.getElementById('descricao').value = item.descricao;
             document.getElementById('pendencia').value = item.pendencia;
-            document.getElementById('areaTecnica').value = item.areaTecnica;
+            document.getElementById('descricaoContrato').value = item.descricaoContrato;
             document.getElementById('progresso').value = item.progresso;
             document.getElementById('dataProgramada').value = item.dataProgramada;
             document.getElementById('diasAtraso').value = item.diasAtraso;
@@ -518,7 +503,7 @@
             numeroContrato: document.getElementById('numeroContrato').value,
             descricao: document.getElementById('descricao').value,
             pendencia: document.getElementById('pendencia').value,
-            areaTecnica: document.getElementById('areaTecnica').value,
+            descricaoContrato: document.getElementById('descricaoContrato').value,
             progresso: parseInt(document.getElementById('progresso').value) || 0,
             dataProgramada: document.getElementById('dataProgramada').value,
             diasAtraso: document.getElementById('diasAtraso').value,
@@ -550,7 +535,7 @@
 
         document.getElementById('report-date').textContent = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
         document.getElementById('report-contrato').textContent = item.numeroContrato;
-        document.getElementById('report-area').textContent = item.areaTecnica;
+        document.getElementById('report-descricao-contrato').textContent = item.descricaoContrato;
         document.getElementById('report-descricao').textContent = item.descricao;
         document.getElementById('report-pendencia').textContent = item.pendencia;
         document.getElementById('report-data-programada').textContent = item.dataProgramada;
